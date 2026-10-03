@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kasi Runner - Interactive Dashboard</title>
-  <!-- Chart.js for data visualization -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
@@ -56,7 +55,7 @@
       box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
     }
 
-    .logo-badge { font-size: 2rem; display: inline-block; animation: bounce 2s infinite; }
+    .logo-badge { font-size: 2.2rem; display: inline-block; animation: bounce 2s infinite; }
     h1 { color: var(--primary); font-size: 1.6rem; }
     p { color: var(--muted); font-size: 0.9rem; margin-top: 4px; }
 
@@ -77,7 +76,7 @@
       background: transparent;
       color: var(--muted);
       font-weight: 600;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       cursor: pointer;
       transition: all 0.25s ease;
     }
@@ -121,6 +120,55 @@
     .btn:active { transform: scale(0.97); }
     .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
 
+    .avatar-picker {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin: 12px 0;
+    }
+
+    .avatar-option {
+      font-size: 1.6rem;
+      padding: 8px;
+      border-radius: 10px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      background: rgba(255,255,255,0.05);
+    }
+
+    .avatar-option.selected {
+      border-color: var(--primary);
+      background: rgba(56, 189, 248, 0.15);
+    }
+
+    .badges {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 10px;
+    }
+
+    .badge-item {
+      text-align: center;
+      opacity: 0.3;
+      transition: opacity 0.3s ease;
+    }
+
+    .badge-item.unlocked { opacity: 1; }
+    .badge-icon { font-size: 1.8rem; }
+    .badge-label { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,0.1);
+      color: var(--text);
+      font-size: 0.95rem;
+      text-align: center;
+      margin-top: 8px;
+    }
+
     @keyframes slideUp {
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
@@ -138,18 +186,18 @@
 <body>
   <div class="container">
     <header>
-      <div class="logo-badge">🚀</div>
-      <h1>Kasi Runner</h1>
+      <div class="logo-badge" id="headerAvatar">🏃‍♂️</div>
+      <h1 id="headerName">Kasi Runner</h1>
       <p>Interactive Web Dashboard</p>
     </header>
 
     <nav class="nav-tabs">
       <button class="tab-btn active" onclick="switchTab('dashboard', this)">Dashboard</button>
       <button class="tab-btn" onclick="switchTab('analytics', this)">Analytics</button>
-      <button class="tab-btn" onclick="switchTab('settings', this)">Settings</button>
+      <button class="tab-btn" onclick="switchTab('profile', this)">Profile</button>
     </nav>
 
-    <!-- TAB 1: DASHBOARD -->
+    <!-- DASHBOARD -->
     <div id="dashboard" class="tab-content active">
       <div class="grid">
         <div class="card">
@@ -162,39 +210,78 @@
         </div>
       </div>
 
+      <div class="card" style="margin-bottom: 12px;">
+        <div class="card-title">Milestone Badges</div>
+        <div class="badges">
+          <div class="badge-item" id="badge10">
+            <div class="badge-icon">🥉</div>
+            <div class="badge-label">10 Taps</div>
+          </div>
+          <div class="badge-item" id="badge50">
+            <div class="badge-icon">🥈</div>
+            <div class="badge-label">50 Taps</div>
+          </div>
+          <div class="badge-item" id="badge100">
+            <div class="badge-icon">🏆</div>
+            <div class="badge-label">100 Taps</div>
+          </div>
+        </div>
+      </div>
+
       <div class="btn-group">
         <button class="btn" onclick="handleClick()">Tap Me!</button>
         <button class="btn btn-outline" onclick="resetClick()">Reset</button>
       </div>
     </div>
 
-    <!-- TAB 2: ANALYTICS -->
+    <!-- ANALYTICS -->
     <div id="analytics" class="tab-content">
-      <div class="card" style="margin-bottom: 12px;">
-        <div class="card-title">Tap Activity Chart</div>
+      <div class="card">
+        <div class="card-title">Milestone Progress</div>
         <div style="margin-top: 10px; height: 180px;">
           <canvas id="tapChart"></canvas>
         </div>
       </div>
     </div>
 
-    <!-- TAB 3: SETTINGS -->
-    <div id="settings" class="tab-content">
+    <!-- PROFILE & SETTINGS -->
+    <div id="profile" class="tab-content">
+      <div class="card" style="margin-bottom: 12px;">
+        <div class="card-title">Runner Profile</div>
+        <input type="text" id="runnerNameInput" placeholder="Enter your name" onchange="saveProfile()" />
+        
+        <div style="margin-top: 12px;" class="card-title">Choose Avatar</div>
+        <div class="avatar-picker">
+          <span class="avatar-option" onclick="selectAvatar('🏃‍♂️')">🏃‍♂️</span>
+          <span class="avatar-option" onclick="selectAvatar('⚡')">⚡</span>
+          <span class="avatar-option" onclick="selectAvatar('🔥')">🔥</span>
+          <span class="avatar-option" onclick="selectAvatar('🚀')">🚀</span>
+          <span class="avatar-option" onclick="selectAvatar('👑')">👑</span>
+        </div>
+      </div>
+
       <div class="card">
-        <div class="card-title">Theme Preferences</div>
-        <button class="btn btn-outline" style="margin-top: 12px; width: 100%;" onclick="toggleTheme()">Toggle Dark / Light Mode</button>
+        <div class="card-title">Preferences</div>
+        <button class="btn btn-outline" style="margin-top: 10px; width: 100%;" onclick="toggleTheme()">Toggle Dark / Light Mode</button>
       </div>
     </div>
   </div>
 
   <script>
     let count = parseInt(localStorage.getItem('kasi_taps')) || 0;
-    document.getElementById('clickCount').innerText = count;
+    let runnerName = localStorage.getItem('kasi_name') || 'Kasi Runner';
+    let avatar = localStorage.getItem('kasi_avatar') || '🏃‍♂️';
 
-    // Load saved theme
+    document.getElementById('clickCount').innerText = count;
+    document.getElementById('runnerNameInput').value = runnerName;
+    document.getElementById('headerName').innerText = runnerName;
+    document.getElementById('headerAvatar').innerText = avatar;
+
     if (localStorage.getItem('kasi_theme') === 'light') {
       document.documentElement.setAttribute('data-theme', 'light');
     }
+
+    updateBadges();
 
     function handleClick() {
       count++;
@@ -206,6 +293,7 @@
       void valEl.offsetWidth;
       valEl.classList.add('pop');
 
+      updateBadges();
       updateChart();
     }
 
@@ -213,7 +301,35 @@
       count = 0;
       localStorage.setItem('kasi_taps', 0);
       document.getElementById('clickCount').innerText = 0;
+      updateBadges();
       updateChart();
+    }
+
+    function updateBadges() {
+      document.getElementById('badge10').classList.toggle('unlocked', count >= 10);
+      document.getElementById('badge50').classList.toggle('unlocked', count >= 50);
+      document.getElementById('badge100').classList.toggle('unlocked', count >= 100);
+    }
+
+    function selectAvatar(emoji) {
+      avatar = emoji;
+      localStorage.setItem('kasi_avatar', avatar);
+      document.getElementById('headerAvatar').innerText = avatar;
+      highlightAvatar();
+    }
+
+    function highlightAvatar() {
+      document.querySelectorAll('.avatar-option').forEach(el => {
+        el.classList.toggle('selected', el.innerText === avatar);
+      });
+    }
+    highlightAvatar();
+
+    function saveProfile() {
+      const inputVal = document.getElementById('runnerNameInput').value.trim();
+      runnerName = inputVal || 'Kasi Runner';
+      localStorage.setItem('kasi_name', runnerName);
+      document.getElementById('headerName').innerText = runnerName;
     }
 
     function switchTab(tabId, btn) {
@@ -235,17 +351,16 @@
       }
     }
 
-    // Chart.js Setup
     const ctx = document.getElementById('tapChart').getContext('2d');
     const tapChart = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: ['Total Taps'],
+        labels: ['Target 10', 'Target 50', 'Target 100', 'Your Taps'],
         datasets: [{
-          label: 'Count',
-          data: [count],
-          backgroundColor: '#38bdf8',
-          borderRadius: 8
+          label: 'Progress',
+          data: [10, 50, 100, count],
+          backgroundColor: ['#94a3b8', '#94a3b8', '#94a3b8', '#38bdf8'],
+          borderRadius: 6
         }]
       },
       options: {
@@ -260,8 +375,10 @@
     });
 
     function updateChart() {
-      tapChart.data.datasets[0].data = [count];
-      tapChart.update();
+      if (tapChart) {
+        tapChart.data.datasets[0].data = [10, 50, 100, count];
+        tapChart.update();
+      }
     }
   </script>
 </body>
