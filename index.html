@@ -81,7 +81,7 @@
       background: transparent;
       color: var(--muted);
       font-weight: 600;
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       cursor: pointer;
       transition: all 0.25s ease;
     }
@@ -125,6 +125,7 @@
     .btn:active { transform: scale(0.97); }
     .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
     .btn-danger { background: #ef4444; }
+    .btn-sm { padding: 6px 10px; font-size: 0.75rem; border-radius: 6px; }
 
     /* Delivery Form & List */
     .task-form {
@@ -149,7 +150,6 @@
       font-size: 0.9rem;
     }
 
-    /* Filters Bar */
     .filter-bar {
       display: flex;
       gap: 6px;
@@ -179,38 +179,69 @@
       margin-top: 10px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
       text-align: left;
     }
 
     .task-item {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 12px;
-      border-radius: 8px;
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px;
+      border-radius: 10px;
       background: rgba(0,0,0,0.1);
       border: 1px solid var(--border);
       font-size: 0.9rem;
     }
 
+    .task-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
     .task-info { display: flex; flex-direction: column; gap: 2px; }
     .task-meta { font-size: 0.75rem; color: var(--muted); }
+
+    .pay-status-badge {
+      font-size: 0.7rem;
+      font-weight: bold;
+      padding: 3px 8px;
+      border-radius: 12px;
+      text-transform: uppercase;
+    }
+
+    .status-unpaid { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+    .status-deposit { background: rgba(250, 204, 21, 0.2); color: var(--warning); }
+    .status-paid { background: rgba(74, 222, 128, 0.2); color: var(--success); }
 
     .task-item.completed .task-title {
       text-decoration: line-through;
       color: var(--muted);
     }
 
-    .task-actions { display: flex; gap: 6px; }
+    .task-actions { display: flex; gap: 6px; align-items: center; }
 
-    .task-btn {
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      font-size: 1rem;
-      padding: 2px 4px;
+    .payment-options {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-top: 10px;
     }
+
+    .pay-btn-opt {
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: rgba(255,255,255,0.03);
+      color: var(--text);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .pay-btn-opt:hover { border-color: var(--primary); }
 
     /* Timer Styles */
     .timer-display {
@@ -283,6 +314,7 @@
     <nav class="nav-tabs">
       <button class="tab-btn active" onclick="switchTab('dashboard', this)">Dashboard</button>
       <button class="tab-btn" onclick="switchTab('tasks', this)">Deliveries</button>
+      <button class="tab-btn" onclick="switchTab('payments', this)">Pay</button>
       <button class="tab-btn" onclick="switchTab('timer', this)">Timer</button>
       <button class="tab-btn" onclick="switchTab('analytics', this)">Analytics</button>
       <button class="tab-btn" onclick="switchTab('profile', this)">Profile</button>
@@ -292,7 +324,7 @@
     <div id="dashboard" class="tab-content active">
       <div class="grid">
         <div class="card">
-          <div class="card-title">Earnings</div>
+          <div class="card-title">Earnings Collected</div>
           <div class="card-val" style="color: var(--success);" id="totalEarnings">R0</div>
         </div>
         <div class="card">
@@ -336,15 +368,16 @@
     <!-- TAB 2: TASKS & DELIVERIES -->
     <div id="tasks" class="tab-content">
       <div class="card">
-        <div class="card-title">Delivery & Earnings Log</div>
-        
+        <div class="card-title">Delivery & Split-Payment Log</div>
+        <p style="font-size: 0.75rem; color: var(--muted); margin-bottom: 8px;">50% Deposit upfront • 50% Balance upon delivery</p>
+
         <div class="task-form">
-          <input type="text" id="taskInput" class="task-input" placeholder="Delivery title (e.g. Grocery Pickup)" />
+          <input type="text" id="taskInput" class="task-input" placeholder="Service title (e.g. Catering Pickup)" />
           <div class="task-input-row">
-            <input type="number" id="payInput" class="task-input" placeholder="Earnings (R)" min="0" step="1" />
+            <input type="number" id="payInput" class="task-input" placeholder="Total Cost (R)" min="0" step="1" />
             <input type="number" id="distInput" class="task-input" placeholder="Distance (km)" min="0" step="0.1" />
           </div>
-          <button class="btn" style="padding: 10px; width: 100%;" onclick="addTask()">Add Delivery</button>
+          <button class="btn" style="padding: 10px; width: 100%;" onclick="addTask()">Add Service</button>
         </div>
 
         <div class="filter-bar">
@@ -357,7 +390,24 @@
       </div>
     </div>
 
-    <!-- TAB 3: SPEED RUN TIMER -->
+    <!-- TAB 3: PAYMENTS PORTAL -->
+    <div id="payments" class="tab-content">
+      <div class="card">
+        <div class="card-title">Local South Africa Payment Gateways</div>
+        <p style="font-size: 0.8rem; color: var(--muted); margin-top: 4px;">Choose a payment provider for deposits or balances</p>
+
+        <div class="payment-options">
+          <button class="pay-btn-opt" onclick="processGateway('Capitec Pay')">💳 Capitec Pay</button>
+          <button class="pay-btn-opt" onclick="processGateway('SnapScan')">📱 SnapScan</button>
+          <button class="pay-btn-opt" onclick="processGateway('Zapper')">⚡ Zapper</button>
+          <button class="pay-btn-opt" onclick="processGateway('Card Payment')">🏧 Bank Card</button>
+          <button class="pay-btn-opt" onclick="processGateway('Instant EFT')">🏦 Instant EFT</button>
+          <button class="pay-btn-opt" onclick="processGateway('Cash on Delivery')">💵 Cash on Delivery</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: SPEED RUN TIMER -->
     <div id="timer" class="tab-content">
       <div class="card">
         <div class="card-title">Speed Run Stopwatch</div>
@@ -369,7 +419,7 @@
       </div>
     </div>
 
-    <!-- TAB 4: ANALYTICS -->
+    <!-- TAB 5: ANALYTICS -->
     <div id="analytics" class="tab-content">
       <div class="card">
         <div class="card-title">Dashboard Overview Metrics</div>
@@ -379,7 +429,7 @@
       </div>
     </div>
 
-    <!-- TAB 5: PROFILE & SETTINGS -->
+    <!-- TAB 6: PROFILE & SETTINGS -->
     <div id="profile" class="tab-content">
       <div class="card" style="margin-bottom: 12px;">
         <div class="card-title">Runner Profile</div>
@@ -409,7 +459,7 @@
     let tasks = JSON.parse(localStorage.getItem('kasi_tasks')) || [];
     let currentFilter = 'all';
 
-    /* Audio Synthesizer for SFX */
+    /* Audio Synthesizer */
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     function playSound(type) {
       if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -425,8 +475,8 @@
         osc.start();
         osc.stop(audioCtx.currentTime + 0.08);
       } else if (type === 'complete') {
-        osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
-        osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); // E5
+        osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+        osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1);
         gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
         osc.start();
@@ -484,24 +534,56 @@
       document.getElementById('badge100').classList.toggle('unlocked', count >= 100);
     }
 
-    /* Delivery Logic with Filtering */
+    /* Split-Deposit Delivery Logic */
     function addTask() {
       const input = document.getElementById('taskInput');
       const payInput = document.getElementById('payInput');
       const distInput = document.getElementById('distInput');
 
       const text = input.value.trim();
-      const pay = parseFloat(payInput.value) || 0;
+      const totalCost = parseFloat(payInput.value) || 0;
       const dist = parseFloat(distInput.value) || 0;
 
       if (!text) return;
 
-      tasks.push({ text: text, pay: pay, dist: dist, done: false });
+      const deposit = totalCost / 2;
+      const balance = totalCost / 2;
+
+      tasks.push({
+        text: text,
+        totalCost: totalCost,
+        deposit: deposit,
+        balance: balance,
+        paidAmount: 0,
+        dist: dist,
+        status: 'unpaid', // unpaid, deposit_paid, fully_paid
+        done: false
+      });
+
       input.value = '';
       payInput.value = '';
       distInput.value = '';
       
       playSound('tap');
+      saveTasks();
+    }
+
+    function payDeposit(index) {
+      const task = tasks[index];
+      task.paidAmount = task.deposit;
+      task.status = 'deposit_paid';
+      playSound('complete');
+      confetti({ particleCount: 40, spread: 40, origin: { y: 0.6 } });
+      saveTasks();
+    }
+
+    function payBalance(index) {
+      const task = tasks[index];
+      task.paidAmount = task.totalCost;
+      task.status = 'fully_paid';
+      task.done = true;
+      playSound('complete');
+      confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
       saveTasks();
     }
 
@@ -529,6 +611,12 @@
       renderTasks();
     }
 
+    function processGateway(gateway) {
+      playSound('complete');
+      confetti({ particleCount: 50, spread: 50 });
+      alert(`Initiated ${gateway} checkout session! Use this for upfront deposits or final balance settlements.`);
+    }
+
     function saveTasks() {
       localStorage.setItem('kasi_tasks', JSON.stringify(tasks));
       renderTasks();
@@ -539,12 +627,12 @@
       const list = document.getElementById('taskList');
       list.innerHTML = '';
 
-      let earningsSum = 0;
+      let totalCollected = 0;
       let distanceSum = 0;
 
       tasks.forEach(t => {
+        totalCollected += t.paidAmount || (t.done ? (t.totalCost || t.pay || 0) : 0);
         if (t.done) {
-          earningsSum += t.pay || 0;
           distanceSum += t.dist || 0;
         }
       });
@@ -556,27 +644,45 @@
       });
 
       if (filtered.length === 0) {
-        list.innerHTML = `<li style="color: var(--muted); text-align: center; font-size: 0.85rem; padding: 10px;">No ${currentFilter === 'all' ? 'deliveries' : currentFilter + ' items'} found.</li>`;
+        list.innerHTML = `<li style="color: var(--muted); text-align: center; font-size: 0.85rem; padding: 10px;">No ${currentFilter === 'all' ? 'services' : currentFilter + ' items'} found.</li>`;
       } else {
         filtered.forEach((task) => {
           const originalIndex = tasks.indexOf(task);
+          const total = task.totalCost || task.pay || 0;
+          const dep = task.deposit || total / 2;
+          const bal = task.balance || total / 2;
+          const status = task.status || (task.done ? 'fully_paid' : 'unpaid');
+
+          let badgeHtml = '<span class="pay-status-badge status-unpaid">Deposit Unpaid</span>';
+          if (status === 'deposit_paid') badgeHtml = '<span class="pay-status-badge status-deposit">50% Deposit Paid</span>';
+          if (status === 'fully_paid') badgeHtml = '<span class="pay-status-badge status-paid">Fully Paid</span>';
+
           const li = document.createElement('li');
           li.className = `task-item ${task.done ? 'completed' : ''}`;
           li.innerHTML = `
-            <div class="task-info">
-              <span class="task-title">${task.text}</span>
-              <span class="task-meta">R${task.pay || 0} • ${task.dist || 0} km</span>
+            <div class="task-header">
+              <div class="task-info">
+                <span class="task-title" style="font-weight: bold;">${task.text}</span>
+                <span class="task-meta">Total: R${total} • Deposit: R${dep} • Balance: R${bal} (${task.dist || 0} km)</span>
+              </div>
+              ${badgeHtml}
             </div>
-            <div class="task-actions">
-              <button class="task-btn" onclick="toggleTask(${originalIndex})">${task.done ? '↩️' : '✅'}</button>
-              <button class="task-btn" onclick="deleteTask(${originalIndex})">🗑️</button>
+            <div class="task-actions" style="justify-content: space-between;">
+              <div style="display: flex; gap: 6px;">
+                ${status === 'unpaid' ? `<button class="btn btn-sm" onclick="payDeposit(${originalIndex})">Pay Deposit (R${dep})</button>` : ''}
+                ${status === 'deposit_paid' ? `<button class="btn btn-sm" style="background: var(--success);" onclick="payBalance(${originalIndex})">Pay Balance (R${bal})</button>` : ''}
+              </div>
+              <div style="display: flex; gap: 6px;">
+                <button class="task-btn" onclick="toggleTask(${originalIndex})">${task.done ? '↩️' : '✅'}</button>
+                <button class="task-btn" onclick="deleteTask(${originalIndex})">🗑️</button>
+              </div>
             </div>
           `;
           list.appendChild(li);
         });
       }
 
-      document.getElementById('totalEarnings').innerText = `R${earningsSum}`;
+      document.getElementById('totalEarnings').innerText = `R${totalCollected.toFixed(2)}`;
       document.getElementById('totalDistance').innerText = `${distanceSum.toFixed(1)} km`;
     }
 
@@ -668,7 +774,7 @@
     
     function getChartData() {
       const doneTasks = tasks.filter(t => t.done);
-      const totalEarned = doneTasks.reduce((sum, t) => sum + (t.pay || 0), 0);
+      const totalEarned = tasks.reduce((sum, t) => sum + (t.paidAmount || 0), 0);
       const totalKm = doneTasks.reduce((sum, t) => sum + (t.dist || 0), 0);
       return [count, doneTasks.length, totalEarned, totalKm];
     }
