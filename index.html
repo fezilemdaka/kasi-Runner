@@ -120,6 +120,10 @@
       border-radius: 10px;
       cursor: pointer;
       font-size: 0.95rem;
+      text-decoration: none;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
     }
 
     .btn:active { transform: scale(0.97); }
@@ -230,18 +234,49 @@
     }
 
     .pay-btn-opt {
-      padding: 10px;
+      padding: 12px;
       border: 1px solid var(--border);
       border-radius: 8px;
       background: rgba(255,255,255,0.03);
       color: var(--text);
-      font-size: 0.8rem;
+      font-size: 0.85rem;
       font-weight: 600;
       cursor: pointer;
       text-align: center;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.2s;
     }
 
-    .pay-btn-opt:hover { border-color: var(--primary); }
+    .pay-btn-opt:hover {
+      border-color: var(--primary);
+      background: rgba(56, 189, 248, 0.1);
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      padding: 16px;
+    }
+
+    .modal-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
 
     /* Timer Styles */
     .timer-display {
@@ -394,15 +429,15 @@
     <div id="payments" class="tab-content">
       <div class="card">
         <div class="card-title">Local South Africa Payment Gateways</div>
-        <p style="font-size: 0.8rem; color: var(--muted); margin-top: 4px;">Choose a payment provider for deposits or balances</p>
+        <p style="font-size: 0.8rem; color: var(--muted); margin-top: 4px; margin-bottom: 10px;">Select a gateway to open its live portal</p>
 
         <div class="payment-options">
-          <button class="pay-btn-opt" onclick="processGateway('Capitec Pay')">💳 Capitec Pay</button>
-          <button class="pay-btn-opt" onclick="processGateway('SnapScan')">📱 SnapScan</button>
-          <button class="pay-btn-opt" onclick="processGateway('Zapper')">⚡ Zapper</button>
-          <button class="pay-btn-opt" onclick="processGateway('Card Payment')">🏧 Bank Card</button>
-          <button class="pay-btn-opt" onclick="processGateway('Instant EFT')">🏦 Instant EFT</button>
-          <button class="pay-btn-opt" onclick="processGateway('Cash on Delivery')">💵 Cash on Delivery</button>
+          <a class="pay-btn-opt" href="https://www.capitecbank.co.za/global-one/transact/capitec-pay/" target="_blank" rel="noopener">💳 Capitec Pay ↗</a>
+          <a class="pay-btn-opt" href="https://www.snapscan.co.za/" target="_blank" rel="noopener">📱 SnapScan ↗</a>
+          <a class="pay-btn-opt" href="https://www.zapper.com/" target="_blank" rel="noopener">⚡ Zapper ↗</a>
+          <a class="pay-btn-opt" href="https://www.payfast.co.za/" target="_blank" rel="noopener">🏧 Bank Card ↗</a>
+          <a class="pay-btn-opt" href="https://www.payfast.co.za/" target="_blank" rel="noopener">🏦 Instant EFT ↗</a>
+          <button class="pay-btn-opt" onclick="alert('Cash on Delivery marked as active option.')">💵 Cash on Delivery</button>
         </div>
       </div>
     </div>
@@ -452,12 +487,29 @@
     </div>
   </div>
 
+  <!-- PAYMENT SELECTOR MODAL -->
+  <div id="payModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="card-title" id="modalTitle">Select Payment Portal</div>
+      <p id="modalSub" style="font-size: 0.8rem; color: var(--muted); margin: 6px 0 12px 0;"></p>
+      <div class="payment-options">
+        <button class="pay-btn-opt" onclick="confirmPayment('https://www.capitecbank.co.za/global-one/transact/capitec-pay/')">💳 Capitec Pay</button>
+        <button class="pay-btn-opt" onclick="confirmPayment('https://www.snapscan.co.za/')">📱 SnapScan</button>
+        <button class="pay-btn-opt" onclick="confirmPayment('https://www.zapper.com/')">⚡ Zapper</button>
+        <button class="pay-btn-opt" onclick="confirmPayment('https://www.payfast.co.za/')">🏧 Card / EFT</button>
+      </div>
+      <button class="btn btn-outline" style="margin-top: 12px; width: 100%; padding: 8px;" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+
   <script>
     let count = parseInt(localStorage.getItem('kasi_taps')) || 0;
     let runnerName = localStorage.getItem('kasi_name') || 'Kasi Runner';
     let avatar = localStorage.getItem('kasi_avatar') || '🏃‍♂️';
     let tasks = JSON.parse(localStorage.getItem('kasi_tasks')) || [];
     let currentFilter = 'all';
+    let pendingTaskIndex = null;
+    let pendingPayType = null; // 'deposit' or 'balance'
 
     /* Audio Synthesizer */
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -556,7 +608,7 @@
         balance: balance,
         paidAmount: 0,
         dist: dist,
-        status: 'unpaid', // unpaid, deposit_paid, fully_paid
+        status: 'unpaid',
         done: false
       });
 
@@ -568,23 +620,44 @@
       saveTasks();
     }
 
-    function payDeposit(index) {
+    function openPayModal(index, type) {
+      pendingTaskIndex = index;
+      pendingPayType = type;
       const task = tasks[index];
-      task.paidAmount = task.deposit;
-      task.status = 'deposit_paid';
-      playSound('complete');
-      confetti({ particleCount: 40, spread: 40, origin: { y: 0.6 } });
-      saveTasks();
+      const amount = type === 'deposit' ? task.deposit : task.balance;
+
+      document.getElementById('modalTitle').innerText = `Pay ${type === 'deposit' ? 'Deposit' : 'Balance'}: R${amount}`;
+      document.getElementById('modalSub').innerText = `Select payment provider for "${task.text}"`;
+      document.getElementById('payModal').style.display = 'flex';
     }
 
-    function payBalance(index) {
-      const task = tasks[index];
-      task.paidAmount = task.totalCost;
-      task.status = 'fully_paid';
-      task.done = true;
-      playSound('complete');
-      confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
-      saveTasks();
+    function closeModal() {
+      document.getElementById('payModal').style.display = 'none';
+      pendingTaskIndex = null;
+      pendingPayType = null;
+    }
+
+    function confirmPayment(gatewayUrl) {
+      if (pendingTaskIndex !== null) {
+        const task = tasks[pendingTaskIndex];
+        if (pendingPayType === 'deposit') {
+          task.paidAmount = task.deposit;
+          task.status = 'deposit_paid';
+        } else {
+          task.paidAmount = task.totalCost;
+          task.status = 'fully_paid';
+          task.done = true;
+        }
+
+        playSound('complete');
+        confetti({ particleCount: 60, spread: 50, origin: { y: 0.6 } });
+        saveTasks();
+
+        if (gatewayUrl) {
+          window.open(gatewayUrl, '_blank');
+        }
+      }
+      closeModal();
     }
 
     function toggleTask(index) {
@@ -609,12 +682,6 @@
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       renderTasks();
-    }
-
-    function processGateway(gateway) {
-      playSound('complete');
-      confetti({ particleCount: 50, spread: 50 });
-      alert(`Initiated ${gateway} checkout session! Use this for upfront deposits or final balance settlements.`);
     }
 
     function saveTasks() {
@@ -669,8 +736,8 @@
             </div>
             <div class="task-actions" style="justify-content: space-between;">
               <div style="display: flex; gap: 6px;">
-                ${status === 'unpaid' ? `<button class="btn btn-sm" onclick="payDeposit(${originalIndex})">Pay Deposit (R${dep})</button>` : ''}
-                ${status === 'deposit_paid' ? `<button class="btn btn-sm" style="background: var(--success);" onclick="payBalance(${originalIndex})">Pay Balance (R${bal})</button>` : ''}
+                ${status === 'unpaid' ? `<button class="btn btn-sm" onclick="openPayModal(${originalIndex}, 'deposit')">Pay Deposit (R${dep})</button>` : ''}
+                ${status === 'deposit_paid' ? `<button class="btn btn-sm" style="background: var(--success);" onclick="openPayModal(${originalIndex}, 'balance')">Pay Balance (R${bal})</button>` : ''}
               </div>
               <div style="display: flex; gap: 6px;">
                 <button class="task-btn" onclick="toggleTask(${originalIndex})">${task.done ? '↩️' : '✅'}</button>
