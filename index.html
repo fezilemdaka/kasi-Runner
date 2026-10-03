@@ -368,7 +368,30 @@
     }
   </style>
 </head>
-<body>
+<body><!-- Login Overlay Modal -->
+  <div id="loginModal" class="login-overlay">
+      <div class="login-card">
+              <h2>Kasi Runner Portal</h2>
+                      <div class="login-tabs">
+                                  <button class="tab-btn active" onclick="switchTab('customer')">Customer Login</button>
+                                              <button class="tab-btn" onclick="switchTab('admin')">Admin Login</button>
+                                                      </div>
+                                                      
+                                                              <form id="loginForm" onsubmit="handleLogin(event)">
+                                                                          <div class="form-group">
+                                                                                          <label id="userLabel">Customer ID / Number</label>
+                                                                                                          <input type="text" id="usernameInput" placeholder="Enter number or ID" required pattern="[0-9]+" title="Must be numbers only">
+                                                                                                                      </div>
+                                                                                                                                  <div class="form-group">
+                                                                                                                                                  <label>PIN (4 to 5 digits)</label>
+                                                                                                                                                                  <input type="password" id="passwordInput" placeholder="Enter 4-5 digit PIN" required pattern="[0-9]{4,5}" maxlength="5" title="Must be 4 to 5 digits">
+                                                                                                                                                                              </div>
+                                                                                                                                                                                          <button type="submit" class="btn-primary">Login</button>
+                                                                                                                                                                                                  </form>
+                                                                                                                                                                                                          <p id="loginError" class="error-msg"></p>
+                                                                                                                                                                                                              </div>
+                                                                                                                                                                                                              </div>
+                                                                                                                                                                                                              -->
   <div class="container">
     <header>
       <div class="logo-badge" id="headerAvatar">🏃‍♂️</div>
@@ -909,5 +932,61 @@
     }
     updateChart();
   </script>
+  <script>
+    let currentRole = 'customer';
+
+    function switchLoginTab(role) {
+        currentRole = role;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+                event.target.classList.add('active');
+                    
+                        document.getElementById('userLabel').innerText = role === 'admin' ? 'Admin ID / Number' : 'Customer ID / Number';
+                            document.getElementById('loginForm').reset();
+                                document.getElementById('loginError').innerText = '';
+                                }
+
+                                function handleLogin(event) {
+                                    event.preventDefault();
+                                        const username = document.getElementById('usernameInput').value.trim();
+                                            const password = document.getElementById('passwordInput').value.trim();
+                                                const errorMsg = document.getElementById('loginError');
+
+                                                    const pinRegex = /^[0-9]{4,5}$/;
+                                                        if (!pinRegex.test(password)) {
+                                                                errorMsg.innerText = "PIN must be exactly 4 or 5 digits.";
+                                                                        return;
+                                                                            }
+
+                                                                                if (currentRole === 'admin') {
+                                                                                        if (username === "9999" && password === "12345") {
+                                                                                                    sessionStorage.setItem('kasiUser', JSON.stringify({ role: 'admin', id: username }));
+                                                                                                                closeLoginModal();
+                                                                                                                        } else {
+                                                                                                                                    errorMsg.innerText = "Invalid Admin ID or PIN.";
+                                                                                                                                            }
+                                                                                                                                                } else {
+                                                                                                                                                        if (username.length > 0) {
+                                                                                                                                                                    sessionStorage.setItem('kasiUser', JSON.stringify({ role: 'customer', id: username }));
+                                                                                                                                                                                closeLoginModal();
+                                                                                                                                                                                        } else {
+                                                                                                                                                                                                    errorMsg.innerText = "Please enter a valid Customer ID.";
+                                                                                                                                                                                                            }
+                                                                                                                                                                                                                }
+                                                                                                                                                                                                                }
+
+                                                                                                                                                                                                                function closeLoginModal() {
+                                                                                                                                                                                                                    document.getElementById('loginModal').style.display = 'none';
+                                                                                                                                                                                                                    }
+
+                                                                                                                                                                                                                    window.addEventListener('DOMContentLoaded', () => {
+                                                                                                                                                                                                                        const user = sessionStorage.getItem('kasiUser');
+                                                                                                                                                                                                                            if (!user) {
+                                                                                                                                                                                                                                    document.getElementById('loginModal').style.display = 'flex';
+                                                                                                                                                                                                                                        } else {
+                                                                                                                                                                                                                                                closeLoginModal();
+                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                    });
+                                                                                                                                                                                                                                                    </script>
+
 </body>
 </html>
