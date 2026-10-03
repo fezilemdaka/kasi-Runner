@@ -15,6 +15,7 @@
       --muted: #94a3b8;
       --border: #334155;
       --success: #4ade80;
+      --warning: #facc15;
     }
 
     [data-theme="light"] {
@@ -26,6 +27,7 @@
       --muted: #64748b;
       --border: #e2e8f0;
       --success: #16a34a;
+      --warning: #d97706;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
@@ -103,7 +105,7 @@
     }
 
     .card-title { font-size: 0.85rem; color: var(--muted); text-transform: uppercase; }
-    .card-val { font-size: 1.6rem; font-weight: bold; color: var(--primary); margin-top: 6px; }
+    .card-val { font-size: 1.5rem; font-weight: bold; color: var(--primary); margin-top: 6px; }
 
     .btn-group { display: flex; gap: 10px; }
 
@@ -123,10 +125,16 @@
     .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
 
     /* Task / Delivery Form & List */
-    .task-input-group {
+    .task-form {
       display: flex;
+      flex-direction: column;
       gap: 8px;
       margin-top: 10px;
+    }
+
+    .task-input-row {
+      display: flex;
+      gap: 8px;
     }
 
     .task-input {
@@ -141,7 +149,7 @@
 
     .task-list {
       list-style: none;
-      margin-top: 12px;
+      margin-top: 14px;
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -159,7 +167,10 @@
       font-size: 0.9rem;
     }
 
-    .task-item.completed span {
+    .task-info { display: flex; flex-direction: column; gap: 2px; }
+    .task-meta { font-size: 0.75rem; color: var(--muted); }
+
+    .task-item.completed .task-title {
       text-decoration: line-through;
       color: var(--muted);
     }
@@ -244,6 +255,14 @@
     <div id="dashboard" class="tab-content active">
       <div class="grid">
         <div class="card">
+          <div class="card-title">Earnings</div>
+          <div class="card-val" style="color: var(--success);" id="totalEarnings">R0</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Distance</div>
+          <div class="card-val" style="color: var(--warning);" id="totalDistance">0 km</div>
+        </div>
+        <div class="card">
           <div class="card-title">Status</div>
           <div class="card-val" style="color: var(--success);">Active</div>
         </div>
@@ -280,10 +299,15 @@
     <!-- TAB 2: TASKS & DELIVERIES -->
     <div id="tasks" class="tab-content">
       <div class="card">
-        <div class="card-title">Delivery Tracker</div>
-        <div class="task-input-group">
-          <input type="text" id="taskInput" class="task-input" placeholder="New delivery or task..." />
-          <button class="btn" style="padding: 10px 16px; flex: initial;" onclick="addTask()">Add</button>
+        <div class="card-title">Delivery & Earnings Log</div>
+        
+        <div class="task-form">
+          <input type="text" id="taskInput" class="task-input" placeholder="Delivery title (e.g. Grocery Pickup)" />
+          <div class="task-input-row">
+            <input type="number" id="payInput" class="task-input" placeholder="Earnings (R)" min="0" step="1" />
+            <input type="number" id="distInput" class="task-input" placeholder="Distance (km)" min="0" step="0.1" />
+          </div>
+          <button class="btn" style="padding: 10px; width: 100%;" onclick="addTask()">Add Delivery</button>
         </div>
 
         <ul id="taskList" class="task-list"></ul>
@@ -293,8 +317,8 @@
     <!-- TAB 3: ANALYTICS -->
     <div id="analytics" class="tab-content">
       <div class="card">
-        <div class="card-title">Milestone & Delivery Progress</div>
-        <div style="margin-top: 10px; height: 180px;">
+        <div class="card-title">Dashboard Overview Metrics</div>
+        <div style="margin-top: 10px; height: 200px;">
           <canvas id="tapChart"></canvas>
         </div>
       </div>
@@ -369,14 +393,23 @@
       document.getElementById('badge100').classList.toggle('unlocked', count >= 100);
     }
 
-    /* Delivery / Task Logic */
+    /* Delivery, Earnings & Distance Logic */
     function addTask() {
       const input = document.getElementById('taskInput');
+      const payInput = document.getElementById('payInput');
+      const distInput = document.getElementById('distInput');
+
       const text = input.value.trim();
+      const pay = parseFloat(payInput.value) || 0;
+      const dist = parseFloat(distInput.value) || 0;
+
       if (!text) return;
 
-      tasks.push({ text: text, done: false });
+      tasks.push({ text: text, pay: pay, dist: dist, done: false });
       input.value = '';
+      payInput.value = '';
+      distInput.value = '';
+      
       saveTasks();
     }
 
@@ -399,23 +432,37 @@
     function renderTasks() {
       const list = document.getElementById('taskList');
       list.innerHTML = '';
+
+      let earningsSum = 0;
+      let distanceSum = 0;
+
       if (tasks.length === 0) {
         list.innerHTML = '<li style="color: var(--muted); text-align: center; font-size: 0.85rem; padding: 10px;">No deliveries logged yet.</li>';
-        return;
+      } else {
+        tasks.forEach((task, index) => {
+          if (task.done) {
+            earningsSum += task.pay || 0;
+            distanceSum += task.dist || 0;
+          }
+
+          const li = document.createElement('li');
+          li.className = `task-item ${task.done ? 'completed' : ''}`;
+          li.innerHTML = `
+            <div class="task-info">
+              <span class="task-title">${task.text}</span>
+              <span class="task-meta">R${task.pay || 0} • ${task.dist || 0} km</span>
+            </div>
+            <div class="task-actions">
+              <button class="task-btn" onclick="toggleTask(${index})">${task.done ? '↩️' : '✅'}</button>
+              <button class="task-btn" onclick="deleteTask(${index})">🗑️</button>
+            </div>
+          `;
+          list.appendChild(li);
+        });
       }
 
-      tasks.forEach((task, index) => {
-        const li = document.createElement('li');
-        li.className = `task-item ${task.done ? 'completed' : ''}`;
-        li.innerHTML = `
-          <span>${task.text}</span>
-          <div class="task-actions">
-            <button class="task-btn" onclick="toggleTask(${index})">${task.done ? '↩️' : '✅'}</button>
-            <button class="task-btn" onclick="deleteTask(${index})">🗑️</button>
-          </div>
-        `;
-        list.appendChild(li);
-      });
+      document.getElementById('totalEarnings').innerText = `R${earningsSum}`;
+      document.getElementById('totalDistance').innerText = `${distanceSum.toFixed(1)} km`;
     }
 
     function selectAvatar(emoji) {
@@ -460,16 +507,22 @@
 
     /* Chart Setup */
     const ctx = document.getElementById('tapChart').getContext('2d');
-    const completedTasksCount = () => tasks.filter(t => t.done).length;
+    
+    function getChartData() {
+      const doneTasks = tasks.filter(t => t.done);
+      const totalEarned = doneTasks.reduce((sum, t) => sum + (t.pay || 0), 0);
+      const totalKm = doneTasks.reduce((sum, t) => sum + (t.dist || 0), 0);
+      return [count, doneTasks.length, totalEarned, totalKm];
+    }
 
     const tapChart = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: ['Total Taps', 'Deliveries Done'],
+        labels: ['Taps', 'Done', 'Earned (R)', 'Dist (km)'],
         datasets: [{
           label: 'Activity',
-          data: [count, completedTasksCount()],
-          backgroundColor: ['#38bdf8', '#4ade80'],
+          data: getChartData(),
+          backgroundColor: ['#38bdf8', '#4ade80', '#facc15', '#a855f7'],
           borderRadius: 6
         }]
       },
@@ -486,7 +539,7 @@
 
     function updateChart() {
       if (tapChart) {
-        tapChart.data.datasets[0].data = [count, completedTasksCount()];
+        tapChart.data.datasets[0].data = getChartData();
         tapChart.update();
       }
     }
