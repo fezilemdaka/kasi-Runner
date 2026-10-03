@@ -14,6 +14,7 @@
       --text: #f8fafc;
       --muted: #94a3b8;
       --border: #334155;
+      --success: #4ade80;
     }
 
     [data-theme="light"] {
@@ -24,6 +25,7 @@
       --text: #0f172a;
       --muted: #64748b;
       --border: #e2e8f0;
+      --success: #16a34a;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
@@ -76,7 +78,7 @@
       background: transparent;
       color: var(--muted);
       font-weight: 600;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       cursor: pointer;
       transition: all 0.25s ease;
     }
@@ -120,6 +122,58 @@
     .btn:active { transform: scale(0.97); }
     .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
 
+    /* Task / Delivery Form & List */
+    .task-input-group {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .task-input {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,0.05);
+      color: var(--text);
+      font-size: 0.9rem;
+    }
+
+    .task-list {
+      list-style: none;
+      margin-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      text-align: left;
+    }
+
+    .task-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: rgba(0,0,0,0.1);
+      border: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+
+    .task-item.completed span {
+      text-decoration: line-through;
+      color: var(--muted);
+    }
+
+    .task-actions { display: flex; gap: 6px; }
+
+    .task-btn {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 2px 4px;
+    }
+
     .avatar-picker {
       display: flex;
       justify-content: center;
@@ -157,18 +211,6 @@
     .badge-icon { font-size: 1.8rem; }
     .badge-label { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
 
-    input[type="text"] {
-      width: 100%;
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: rgba(0,0,0,0.1);
-      color: var(--text);
-      font-size: 0.95rem;
-      text-align: center;
-      margin-top: 8px;
-    }
-
     @keyframes slideUp {
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
@@ -193,16 +235,17 @@
 
     <nav class="nav-tabs">
       <button class="tab-btn active" onclick="switchTab('dashboard', this)">Dashboard</button>
+      <button class="tab-btn" onclick="switchTab('tasks', this)">Deliveries</button>
       <button class="tab-btn" onclick="switchTab('analytics', this)">Analytics</button>
       <button class="tab-btn" onclick="switchTab('profile', this)">Profile</button>
     </nav>
 
-    <!-- DASHBOARD -->
+    <!-- TAB 1: DASHBOARD -->
     <div id="dashboard" class="tab-content active">
       <div class="grid">
         <div class="card">
           <div class="card-title">Status</div>
-          <div class="card-val" style="color: #4ade80;">Active</div>
+          <div class="card-val" style="color: var(--success);">Active</div>
         </div>
         <div class="card">
           <div class="card-title">Taps</div>
@@ -234,21 +277,34 @@
       </div>
     </div>
 
-    <!-- ANALYTICS -->
+    <!-- TAB 2: TASKS & DELIVERIES -->
+    <div id="tasks" class="tab-content">
+      <div class="card">
+        <div class="card-title">Delivery Tracker</div>
+        <div class="task-input-group">
+          <input type="text" id="taskInput" class="task-input" placeholder="New delivery or task..." />
+          <button class="btn" style="padding: 10px 16px; flex: initial;" onclick="addTask()">Add</button>
+        </div>
+
+        <ul id="taskList" class="task-list"></ul>
+      </div>
+    </div>
+
+    <!-- TAB 3: ANALYTICS -->
     <div id="analytics" class="tab-content">
       <div class="card">
-        <div class="card-title">Milestone Progress</div>
+        <div class="card-title">Milestone & Delivery Progress</div>
         <div style="margin-top: 10px; height: 180px;">
           <canvas id="tapChart"></canvas>
         </div>
       </div>
     </div>
 
-    <!-- PROFILE & SETTINGS -->
+    <!-- TAB 4: PROFILE & SETTINGS -->
     <div id="profile" class="tab-content">
       <div class="card" style="margin-bottom: 12px;">
         <div class="card-title">Runner Profile</div>
-        <input type="text" id="runnerNameInput" placeholder="Enter your name" onchange="saveProfile()" />
+        <input type="text" id="runnerNameInput" class="task-input" style="width: 100%; text-align: center; margin-top: 8px;" placeholder="Enter your name" onchange="saveProfile()" />
         
         <div style="margin-top: 12px;" class="card-title">Choose Avatar</div>
         <div class="avatar-picker">
@@ -271,6 +327,7 @@
     let count = parseInt(localStorage.getItem('kasi_taps')) || 0;
     let runnerName = localStorage.getItem('kasi_name') || 'Kasi Runner';
     let avatar = localStorage.getItem('kasi_avatar') || '🏃‍♂️';
+    let tasks = JSON.parse(localStorage.getItem('kasi_tasks')) || [];
 
     document.getElementById('clickCount').innerText = count;
     document.getElementById('runnerNameInput').value = runnerName;
@@ -282,6 +339,7 @@
     }
 
     updateBadges();
+    renderTasks();
 
     function handleClick() {
       count++;
@@ -309,6 +367,55 @@
       document.getElementById('badge10').classList.toggle('unlocked', count >= 10);
       document.getElementById('badge50').classList.toggle('unlocked', count >= 50);
       document.getElementById('badge100').classList.toggle('unlocked', count >= 100);
+    }
+
+    /* Delivery / Task Logic */
+    function addTask() {
+      const input = document.getElementById('taskInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      tasks.push({ text: text, done: false });
+      input.value = '';
+      saveTasks();
+    }
+
+    function toggleTask(index) {
+      tasks[index].done = !tasks[index].done;
+      saveTasks();
+    }
+
+    function deleteTask(index) {
+      tasks.splice(index, 1);
+      saveTasks();
+    }
+
+    function saveTasks() {
+      localStorage.setItem('kasi_tasks', JSON.stringify(tasks));
+      renderTasks();
+      updateChart();
+    }
+
+    function renderTasks() {
+      const list = document.getElementById('taskList');
+      list.innerHTML = '';
+      if (tasks.length === 0) {
+        list.innerHTML = '<li style="color: var(--muted); text-align: center; font-size: 0.85rem; padding: 10px;">No deliveries logged yet.</li>';
+        return;
+      }
+
+      tasks.forEach((task, index) => {
+        const li = document.createElement('li');
+        li.className = `task-item ${task.done ? 'completed' : ''}`;
+        li.innerHTML = `
+          <span>${task.text}</span>
+          <div class="task-actions">
+            <button class="task-btn" onclick="toggleTask(${index})">${task.done ? '↩️' : '✅'}</button>
+            <button class="task-btn" onclick="deleteTask(${index})">🗑️</button>
+          </div>
+        `;
+        list.appendChild(li);
+      });
     }
 
     function selectAvatar(emoji) {
@@ -351,15 +458,18 @@
       }
     }
 
+    /* Chart Setup */
     const ctx = document.getElementById('tapChart').getContext('2d');
+    const completedTasksCount = () => tasks.filter(t => t.done).length;
+
     const tapChart = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: ['Target 10', 'Target 50', 'Target 100', 'Your Taps'],
+        labels: ['Total Taps', 'Deliveries Done'],
         datasets: [{
-          label: 'Progress',
-          data: [10, 50, 100, count],
-          backgroundColor: ['#94a3b8', '#94a3b8', '#94a3b8', '#38bdf8'],
+          label: 'Activity',
+          data: [count, completedTasksCount()],
+          backgroundColor: ['#38bdf8', '#4ade80'],
           borderRadius: 6
         }]
       },
@@ -376,7 +486,7 @@
 
     function updateChart() {
       if (tapChart) {
-        tapChart.data.datasets[0].data = [10, 50, 100, count];
+        tapChart.data.datasets[0].data = [count, completedTasksCount()];
         tapChart.update();
       }
     }
