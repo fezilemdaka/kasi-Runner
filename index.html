@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kasi Runner - Interactive Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <style>
     :root {
       --bg: #0f172a;
@@ -114,17 +115,18 @@
       background: var(--primary);
       color: #ffffff;
       font-weight: 700;
-      padding: 14px;
+      padding: 12px;
       border: none;
       border-radius: 10px;
       cursor: pointer;
-      font-size: 1rem;
+      font-size: 0.95rem;
     }
 
     .btn:active { transform: scale(0.97); }
     .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-danger { background: #ef4444; }
 
-    /* Task / Delivery Form & List */
+    /* Delivery Form & List */
     .task-form {
       display: flex;
       flex-direction: column;
@@ -147,9 +149,34 @@
       font-size: 0.9rem;
     }
 
+    /* Filters Bar */
+    .filter-bar {
+      display: flex;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .filter-btn {
+      flex: 1;
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .filter-btn.active {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent);
+    }
+
     .task-list {
       list-style: none;
-      margin-top: 14px;
+      margin-top: 10px;
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -183,6 +210,15 @@
       cursor: pointer;
       font-size: 1rem;
       padding: 2px 4px;
+    }
+
+    /* Timer Styles */
+    .timer-display {
+      font-size: 2.2rem;
+      font-weight: bold;
+      font-family: monospace;
+      color: var(--warning);
+      margin: 12px 0;
     }
 
     .avatar-picker {
@@ -247,6 +283,7 @@
     <nav class="nav-tabs">
       <button class="tab-btn active" onclick="switchTab('dashboard', this)">Dashboard</button>
       <button class="tab-btn" onclick="switchTab('tasks', this)">Deliveries</button>
+      <button class="tab-btn" onclick="switchTab('timer', this)">Timer</button>
       <button class="tab-btn" onclick="switchTab('analytics', this)">Analytics</button>
       <button class="tab-btn" onclick="switchTab('profile', this)">Profile</button>
     </nav>
@@ -310,11 +347,29 @@
           <button class="btn" style="padding: 10px; width: 100%;" onclick="addTask()">Add Delivery</button>
         </div>
 
+        <div class="filter-bar">
+          <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
+          <button class="filter-btn" onclick="setFilter('active', this)">Active</button>
+          <button class="filter-btn" onclick="setFilter('completed', this)">Completed</button>
+        </div>
+
         <ul id="taskList" class="task-list"></ul>
       </div>
     </div>
 
-    <!-- TAB 3: ANALYTICS -->
+    <!-- TAB 3: SPEED RUN TIMER -->
+    <div id="timer" class="tab-content">
+      <div class="card">
+        <div class="card-title">Speed Run Stopwatch</div>
+        <div class="timer-display" id="timerDisplay">00:00:00</div>
+        <div class="btn-group">
+          <button class="btn" id="startTimerBtn" onclick="toggleTimer()">Start Run</button>
+          <button class="btn btn-outline" onclick="resetTimer()">Reset</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: ANALYTICS -->
     <div id="analytics" class="tab-content">
       <div class="card">
         <div class="card-title">Dashboard Overview Metrics</div>
@@ -324,7 +379,7 @@
       </div>
     </div>
 
-    <!-- TAB 4: PROFILE & SETTINGS -->
+    <!-- TAB 5: PROFILE & SETTINGS -->
     <div id="profile" class="tab-content">
       <div class="card" style="margin-bottom: 12px;">
         <div class="card-title">Runner Profile</div>
@@ -352,6 +407,32 @@
     let runnerName = localStorage.getItem('kasi_name') || 'Kasi Runner';
     let avatar = localStorage.getItem('kasi_avatar') || '🏃‍♂️';
     let tasks = JSON.parse(localStorage.getItem('kasi_tasks')) || [];
+    let currentFilter = 'all';
+
+    /* Audio Synthesizer for SFX */
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playSound(type) {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      if (type === 'tap') {
+        osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.08);
+      } else if (type === 'complete') {
+        osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+        osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); // E5
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.25);
+      }
+    }
 
     document.getElementById('clickCount').innerText = count;
     document.getElementById('runnerNameInput').value = runnerName;
@@ -371,10 +452,13 @@
       const valEl = document.getElementById('clickCount');
       valEl.innerText = count;
 
+      playSound('tap');
+
       valEl.classList.remove('pop');
       void valEl.offsetWidth;
       valEl.classList.add('pop');
 
+      checkMilestones();
       updateBadges();
       updateChart();
     }
@@ -387,13 +471,20 @@
       updateChart();
     }
 
+    function checkMilestones() {
+      if (count === 10 || count === 50 || count === 100) {
+        playSound('complete');
+        confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 } });
+      }
+    }
+
     function updateBadges() {
       document.getElementById('badge10').classList.toggle('unlocked', count >= 10);
       document.getElementById('badge50').classList.toggle('unlocked', count >= 50);
       document.getElementById('badge100').classList.toggle('unlocked', count >= 100);
     }
 
-    /* Delivery, Earnings & Distance Logic */
+    /* Delivery Logic with Filtering */
     function addTask() {
       const input = document.getElementById('taskInput');
       const payInput = document.getElementById('payInput');
@@ -410,17 +501,32 @@
       payInput.value = '';
       distInput.value = '';
       
+      playSound('tap');
       saveTasks();
     }
 
     function toggleTask(index) {
       tasks[index].done = !tasks[index].done;
+      if (tasks[index].done) {
+        playSound('complete');
+        confetti({ particleCount: 50, spread: 50, origin: { y: 0.6 } });
+      } else {
+        playSound('tap');
+      }
       saveTasks();
     }
 
     function deleteTask(index) {
       tasks.splice(index, 1);
+      playSound('tap');
       saveTasks();
+    }
+
+    function setFilter(filter, btn) {
+      currentFilter = filter;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderTasks();
     }
 
     function saveTasks() {
@@ -436,15 +542,24 @@
       let earningsSum = 0;
       let distanceSum = 0;
 
-      if (tasks.length === 0) {
-        list.innerHTML = '<li style="color: var(--muted); text-align: center; font-size: 0.85rem; padding: 10px;">No deliveries logged yet.</li>';
-      } else {
-        tasks.forEach((task, index) => {
-          if (task.done) {
-            earningsSum += task.pay || 0;
-            distanceSum += task.dist || 0;
-          }
+      tasks.forEach(t => {
+        if (t.done) {
+          earningsSum += t.pay || 0;
+          distanceSum += t.dist || 0;
+        }
+      });
 
+      const filtered = tasks.filter(t => {
+        if (currentFilter === 'active') return !t.done;
+        if (currentFilter === 'completed') return t.done;
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        list.innerHTML = `<li style="color: var(--muted); text-align: center; font-size: 0.85rem; padding: 10px;">No ${currentFilter === 'all' ? 'deliveries' : currentFilter + ' items'} found.</li>`;
+      } else {
+        filtered.forEach((task) => {
+          const originalIndex = tasks.indexOf(task);
           const li = document.createElement('li');
           li.className = `task-item ${task.done ? 'completed' : ''}`;
           li.innerHTML = `
@@ -453,8 +568,8 @@
               <span class="task-meta">R${task.pay || 0} • ${task.dist || 0} km</span>
             </div>
             <div class="task-actions">
-              <button class="task-btn" onclick="toggleTask(${index})">${task.done ? '↩️' : '✅'}</button>
-              <button class="task-btn" onclick="deleteTask(${index})">🗑️</button>
+              <button class="task-btn" onclick="toggleTask(${originalIndex})">${task.done ? '↩️' : '✅'}</button>
+              <button class="task-btn" onclick="deleteTask(${originalIndex})">🗑️</button>
             </div>
           `;
           list.appendChild(li);
@@ -465,11 +580,52 @@
       document.getElementById('totalDistance').innerText = `${distanceSum.toFixed(1)} km`;
     }
 
+    /* Stopwatch / Timer Logic */
+    let timerInterval = null;
+    let timerSeconds = 0;
+
+    function toggleTimer() {
+      const btn = document.getElementById('startTimerBtn');
+      playSound('tap');
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+        btn.innerText = 'Resume Run';
+        btn.classList.remove('btn-danger');
+      } else {
+        timerInterval = setInterval(() => {
+          timerSeconds++;
+          updateTimerDisplay();
+        }, 1000);
+        btn.innerText = 'Pause Run';
+        btn.classList.add('btn-danger');
+      }
+    }
+
+    function resetTimer() {
+      playSound('tap');
+      clearInterval(timerInterval);
+      timerInterval = null;
+      timerSeconds = 0;
+      updateTimerDisplay();
+      const btn = document.getElementById('startTimerBtn');
+      btn.innerText = 'Start Run';
+      btn.classList.remove('btn-danger');
+    }
+
+    function updateTimerDisplay() {
+      const hrs = String(Math.floor(timerSeconds / 3600)).padStart(2, '0');
+      const mins = String(Math.floor((timerSeconds % 3600) / 60)).padStart(2, '0');
+      const secs = String(timerSeconds % 60).padStart(2, '0');
+      document.getElementById('timerDisplay').innerText = `${hrs}:${mins}:${secs}`;
+    }
+
     function selectAvatar(emoji) {
       avatar = emoji;
       localStorage.setItem('kasi_avatar', avatar);
       document.getElementById('headerAvatar').innerText = avatar;
       highlightAvatar();
+      playSound('tap');
     }
 
     function highlightAvatar() {
@@ -487,6 +643,7 @@
     }
 
     function switchTab(tabId, btn) {
+      playSound('tap');
       document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
 
@@ -495,6 +652,7 @@
     }
 
     function toggleTheme() {
+      playSound('tap');
       const currentTheme = document.documentElement.getAttribute('data-theme');
       if (currentTheme === 'light') {
         document.documentElement.removeAttribute('data-theme');
