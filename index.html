@@ -3,54 +3,242 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kasi Runner - Web App</title>
+  <title>Kasi Runner - Interactive Dashboard</title>
   <style>
     :root {
       --bg: #0f172a;
       --card: #1e293b;
       --primary: #38bdf8;
+      --accent: #a855f7;
       --text: #f8fafc;
       --muted: #94a3b8;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
-    body { background: var(--bg); color: var(--text); padding: 20px; display: flex; justify-content: center; min-height: 100vh; }
-    .container { width: 100%; max-width: 600px; display: flex; flex-direction: column; gap: 20px; }
-    header { background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid #334155; }
-    h1 { color: var(--primary); font-size: 1.8rem; margin-bottom: 8px; }
-    p { color: var(--muted); line-height: 1.5; }
-    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-    .card { background: var(--card); padding: 16px; border-radius: 12px; border: 1px solid #334155; text-align: center; }
-    .card-val { font-size: 1.5rem; font-weight: bold; color: var(--primary); margin-top: 6px; }
-    .btn { background: var(--primary); color: #000; font-weight: bold; padding: 14px; border: none; border-radius: 8px; cursor: pointer; text-align: center; font-size: 1rem; width: 100%; margin-top: 10px; }
-    .btn:active { opacity: 0.8; }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      padding: 16px;
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+      animation: fadeIn 0.6s ease-in-out;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 500px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Header Styling & Pulse Animation */
+    header {
+      background: var(--card);
+      padding: 20px;
+      border-radius: 16px;
+      border: 1px solid #334155;
+      text-align: center;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    }
+
+    .logo-badge {
+      display: inline-block;
+      font-size: 2rem;
+      animation: bounce 2s infinite;
+      margin-bottom: 6px;
+    }
+
+    h1 { color: var(--primary); font-size: 1.6rem; }
+    p { color: var(--muted); font-size: 0.9rem; margin-top: 4px; }
+
+    /* Navigation Tabs */
+    .nav-tabs {
+      display: flex;
+      background: var(--card);
+      padding: 6px;
+      border-radius: 12px;
+      border: 1px solid #334155;
+      gap: 6px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+
+    .tab-btn.active {
+      background: var(--primary);
+      color: #0f172a;
+      box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3);
+    }
+
+    /* Tab Content Panels */
+    .tab-content {
+      display: none;
+      animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .tab-content.active { display: block; }
+
+    /* Card Layouts */
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 12px; }
+
+    .card {
+      background: var(--card);
+      padding: 18px;
+      border-radius: 14px;
+      border: 1px solid #334155;
+      text-align: center;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      border-color: var(--primary);
+    }
+
+    .card-title { font-size: 0.85rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .card-val { font-size: 1.6rem; font-weight: bold; color: var(--primary); margin-top: 6px; }
+
+    /* Buttons & Interactive Elements */
+    .btn-group { display: flex; gap: 10px; }
+
+    .btn {
+      flex: 1;
+      background: var(--primary);
+      color: #0f172a;
+      font-weight: 700;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: transform 0.1s ease, filter 0.2s ease;
+    }
+
+    .btn:active { transform: scale(0.97); }
+    .btn-outline { background: transparent; border: 1px solid #334155; color: var(--text); }
+    .btn-outline:active { background: #334155; }
+
+    /* Keyframe Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+
+    /* Pop animation on counter click */
+    .pop { animation: pop 0.2s ease-in-out; }
+    @keyframes pop {
+      50% { transform: scale(1.25); color: var(--accent); }
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <header>
-      <h1>🚀 Kasi Runner App</h1>
-      <p>Welcome to your newly deployed web application dashboard.</p>
+      <div class="logo-badge">🚀</div>
+      <h1>Kasi Runner</h1>
+      <p>Interactive Web Dashboard</p>
     </header>
-    
-    <div class="grid">
-      <div class="card">
-        <div>Status</div>
-        <div class="card-val" style="color: #4ade80;">Active</div>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs">
+      <button class="tab-btn active" onclick="switchTab('dashboard', this)">Dashboard</button>
+      <button class="tab-btn" onclick="switchTab('analytics', this)">Analytics</button>
+      <button class="tab-btn" onclick="switchTab('settings', this)">Settings</button>
+    </nav>
+
+    <!-- TAB 1: DASHBOARD -->
+    <div id="dashboard" class="tab-content active">
+      <div class="grid">
+        <div class="card">
+          <div class="card-title">Status</div>
+          <div class="card-val" style="color: #4ade80;">Active</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Taps</div>
+          <div class="card-val" id="clickCount">0</div>
+        </div>
       </div>
-      <div class="card">
-        <div>Clicks</div>
-        <div class="card-val" id="clickCount">0</div>
+
+      <div class="btn-group">
+        <button class="btn" onclick="handleClick()">Tap Me!</button>
+        <button class="btn btn-outline" onclick="resetClick()">Reset</button>
       </div>
     </div>
 
-    <button class="btn" onclick="handleClick()">Tap Me!</button>
+    <!-- TAB 2: ANALYTICS -->
+    <div id="analytics" class="tab-content">
+      <div class="card" style="margin-bottom: 12px;">
+        <div class="card-title">Activity Score</div>
+        <div class="card-val" id="activityScore" style="color: var(--accent);">0 pts</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Deployment Engine</div>
+        <div class="card-val" style="font-size: 1.1rem; color: var(--muted); margin-top: 8px;">GitHub Pages (Automated)</div>
+      </div>
+    </div>
+
+    <!-- TAB 3: SETTINGS -->
+    <div id="settings" class="tab-content">
+      <div class="card">
+        <div class="card-title">App Version</div>
+        <div class="card-val" style="font-size: 1.2rem;">v2.0.0</div>
+        <p style="margin-top: 8px;">Theme: Modern Dark Mode</p>
+      </div>
+    </div>
   </div>
 
   <script>
     let count = 0;
+
     function handleClick() {
       count++;
+      const valEl = document.getElementById('clickCount');
+      valEl.innerText = count;
+      document.getElementById('activityScore').innerText = (count * 15) + " pts";
+
+      // Trigger pop animation
+      valEl.classList.remove('pop');
+      void valEl.offsetWidth; // Trigger reflow
+      valEl.classList.add('pop');
+    }
+
+    function resetClick() {
+      count = 0;
       document.getElementById('clickCount').innerText = count;
+      document.getElementById('activityScore').innerText = "0 pts";
+    }
+
+    function switchTab(tabId, btn) {
+      // Hide all tabs
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+
+      // Show selected tab
+      document.getElementById(tabId).classList.add('active');
+      btn.classList.add('active');
     }
   </script>
 </body>
