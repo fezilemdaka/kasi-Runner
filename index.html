@@ -1,1 +1,57 @@
-<h1>Hello World! My app is live.</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kasi Runner - Web App</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --primary: #38bdf8;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 20px; display: flex; justify-content: center; min-height: 100vh; }
+    .container { width: 100%; max-width: 600px; display: flex; flex-direction: column; gap: 20px; }
+    header { background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid #334155; }
+    h1 { color: var(--primary); font-size: 1.8rem; margin-bottom: 8px; }
+    p { color: var(--muted); line-height: 1.5; }
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .card { background: var(--card); padding: 16px; border-radius: 12px; border: 1px solid #334155; text-align: center; }
+    .card-val { font-size: 1.5rem; font-weight: bold; color: var(--primary); margin-top: 6px; }
+    .btn { background: var(--primary); color: #000; font-weight: bold; padding: 14px; border: none; border-radius: 8px; cursor: pointer; text-align: center; font-size: 1rem; width: 100%; margin-top: 10px; }
+    .btn:active { opacity: 0.8; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🚀 Kasi Runner App</h1>
+      <p>Welcome to your newly deployed web application dashboard.</p>
+    </header>
+    
+    <div class="grid">
+      <div class="card">
+        <div>Status</div>
+        <div class="card-val" style="color: #4ade80;">Active</div>
+      </div>
+      <div class="card">
+        <div>Clicks</div>
+        <div class="card-val" id="clickCount">0</div>
+      </div>
+    </div>
+
+    <button class="btn" onclick="handleClick()">Tap Me!</button>
+  </div>
+
+  <script>
+    let count = 0;
+    function handleClick() {
+      count++;
+      document.getElementById('clickCount').innerText = count;
+    }
+  </script>
+</body>
+</html>
